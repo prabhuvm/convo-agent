@@ -1,0 +1,6 @@
+{
+    "s3_path": "s3://your-bucket-name/path/to/interactive_story_illustrator.zip",
+    "input": {
+        "prompt": "A time-traveling detective solving a mystery in ancient Egypt"
+    }
+}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Django backend service for Maze Runtime
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/maze-agent-flask/maze_agent_runtime
+ExecStart=/home/ubuntu/maze-agent-flask/maze_agent_runtime/venv/bin/python /home/ubuntu/maze-agent-flask/maze_agent_runtime/runtime.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

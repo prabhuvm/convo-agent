@@ -1,0 +1,16 @@
+- Create zip by selecting all files, not the folder.
+
+
+
+Sample Request for chatGPT-agent:
+==============================
+curl http://127.0.0.1:5000/execute_agent \
+  -H "Content-Type: application/json" \
+  -X POST \
+  -d '{
+    "s3_path": "t5v3PgCh/t5v3PgCh_9XYol32W.zip",
+    "input": {
+      "text": "Hey there! What'\''s up? I'\''ve got some awesome news to share with you guys.",
+      "style": "formal business email"
+    }
+  }'

@@ -1,0 +1,7 @@
+http://your-ec2-instance:5000/execute_agent
+{
+    "s3_path": "s3://your-bucket-name/path/to/agent.zip",
+    "input": {
+        "query": "Your input to the agent"
+    }
+}
