@@ -1,5 +1,10 @@
-Steps to create and host the agents repo:
-=====================================
+
+# Agent runtime
+Python runtime to dynamically load agents from s3 buckets and execute 
+on fly as and when it recieves user requests. 
+
+## Steps to create and host the agents repo:
+
 To create an agent with a packed venv:
 Create a new directory for your agent
 Set up a virtual environment:
@@ -12,15 +17,12 @@ pip install your-dependencies
 Create your agent.py file
 Zip the entire directory, including the venv folder:
 zip -r agent.zip agent.py venv
-
-
-
 - Create zip by selecting all files, not the folder.
 
+Upload same to S3 bucket in your AWS account.
 
 
-Sample Request for chatGPT-agent:
-==============================
+## Sample Request for chatGPT-agent:
 curl http://127.0.0.1:5000/execute_agent \
 -H "Content-Type: application/json" \
 -X POST \
