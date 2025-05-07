@@ -1,0 +1,13 @@
+[Unit]
+Description=Django backend service for Runtime
+After=network.target
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=./agent_runtime
+ExecStart=/agent_runtime/venv/bin/python ./agent_runtime/runtime.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
