@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import zipfile
@@ -12,7 +13,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-S3_PATH_PREFIX = "s3://maze-social-agent-app/app-zip/"
+S3_PATH_PREFIX = "s3://social-agent-app/app-zip/"
 # Set up AWS region (optional if your EC2 instance is in the same region as your S3 bucket)
 aws_region = os.getenv("AWS_REGION")
 
@@ -52,11 +53,20 @@ def load_agent(agent_dir):
         # Use the packed venv
         activate_this = os.path.join(venv_dir, 'bin', 'activate_this.py')
         exec(open(activate_this).read(), {'__file__': activate_this})
+
+        # Get the Python executable from the agent's venv
+        if sys.platform == 'win32':
+            python_executable = os.path.join(venv_dir, 'Scripts', 'python.exe')
+        else:
+            python_executable = os.path.join(venv_dir, 'bin', 'python')
     else:
+        # If no venv, use the current Python interpreter
+        python_executable = sys.executable
+
         # Install dependencies from requirements.txt
         requirements_file = os.path.join(agent_dir, 'requirements.txt')
         if os.path.exists(requirements_file):
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-cache-dir",  "-r", requirements_file])
+            subprocess.run([python_executable, "-m", "pip", "install", "-r", requirements_file], check=True)
 
     # Add the agent directory to the Python path
     sys.path.insert(0, agent_dir)
@@ -76,13 +86,18 @@ def load_agent(agent_dir):
         # Remove the agent directory from the Python path
         sys.path.pop(0)
 
+        # Deactivate the agent's venv if it was used
+        if 'deactivate' in globals():
+            deactivate()
+
 @app.route('/execute_agent', methods=['POST'])
 def execute_agent():
     try:
         data = request.json
-        print("Request recieved: ", data)
+        print("Request received: ", data)  # Log the incoming request
         s3_file = data.get('s3_path')
         s3_path = S3_PATH_PREFIX + s3_file
+        print(f"Full S3 path: {s3_path}")  # Log the full S3 path
         agent_input = data.get('input', {})
 
         if not s3_path:
@@ -91,24 +106,39 @@ def execute_agent():
         agent_dir = None
         try:
             agent_dir = download_and_extract_agent(s3_path)
-            list_directory_contents(agent_dir)
-            agent = load_agent(agent_dir)
 
-            if agent is None:
-                return jsonify({"error": "Failed to load agent"}), 500
+            # Create a clean environment for the subprocess
+            env = os.environ.copy()
+            env['PYTHONPATH'] = agent_dir + os.pathsep + env.get('PYTHONPATH', '')
 
-            result = agent.execute(agent_input)
-            return jsonify(result)
+            # Run the agent in a subprocess
+            result = subprocess.run(
+                [sys.executable, "-c",
+                 "from agent import Agent; import json; "
+                 "agent = Agent(); "
+                 f"result = agent.execute({json.dumps(agent_input)}); "
+                 "print(json.dumps(result))"],
+                env=env,
+                cwd=agent_dir,
+                capture_output=True,
+                text=True,
+                check=True
+            )
 
+            return jsonify(json.loads(result.stdout))
+
+        except subprocess.CalledProcessError as e:
+            print("Error executing: ", e)
+            return jsonify({"error": f"Agent execution failed: {e.stderr}"}), 500
         except Exception as e:
+            print("Error executing: ", e)
             return jsonify({"error": str(e)}), 500
-
         finally:
             # Clean up
             if agent_dir and os.path.exists(agent_dir):
                 shutil.rmtree(agent_dir)
     except Exception as e:
-        print("Error in processing: ", e)
+        print("Error in execute_agent: ", e)
 
 @app.route('/health', methods=['GET'])
 def health_check():
